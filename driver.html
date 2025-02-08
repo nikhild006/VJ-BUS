@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Driver Location Sender</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="container">
+    <h2>🚗 Driver Location Sender</h2>
+    <button id="start">GO</button>
+    <button id="stop" disabled>STOP</button>
+    <p id="status">Live location not started</p>
+    <p id="connection">Connecting to WebSocket...</p>
+  </div>
+
+  <script>
+    const deviceID = "device_123";
+    const socket = io("wss://d77d-2409-4070-2518-4a1e-457f-c22f-15a4-3048.ngrok-free.app", { transports: ["websocket"] });
+
+    let tracking = false;
+    let interval;
+
+    socket.on("connect", function () {
+      document.getElementById("connection").innerText = "✅ WebSocket connected!";
+    });
+
+    socket.on("disconnect", function () {
+      document.getElementById("connection").innerText = "❌ WebSocket disconnected!";
+    });
+
+    function sendLocation(lat, lon) {
+      socket.emit("location_update", { device_id: deviceID, latitude: lat, longitude: lon });
+    }
+
+    function getLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+          sendLocation(position.coords.latitude, position.coords.longitude);
+        });
+      }
+    }
+
+    document.getElementById("start").addEventListener("click", function () {
+    if (!tracking) {
+        tracking = true;
+        document.getElementById("start").disabled = true;
+        document.getElementById("stop").disabled = false;
+        document.getElementById("status").innerText = "Live location started";
+        interval = setInterval(getLocation, 1000);
+
+        console.log("📡 Emitting tracking status: started");
+        socket.emit("tracking_status", { status: "started" }); // Send correct format
+    }
+});
+
+document.getElementById("stop").addEventListener("click", function () {
+    tracking = false;
+    clearInterval(interval);
+    document.getElementById("start").disabled = false;
+    document.getElementById("stop").disabled = true;
+    document.getElementById("status").innerText = "Live location stopped";
+
+    console.log("📡 Emitting tracking status: stopped");
+    socket.emit("tracking_status", { status: "stopped" }); // Send correct format
+});
+
+  </script>
+
+</body>
+</html>

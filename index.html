@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Route Tracking</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>📍 Live Route Tracking</h1>
+        <p id="status">Live location not started</p>
+        <p id="connection">Connecting to WebSocket...</p>
+        <button id="recenter">🔄 Recenter Map</button>
+        <div id="map"></div>
+    </div>
+
+    <script>
+        var map = L.map('map').setView([17.385044, 78.486671], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+        var marker = L.marker([17.385044, 78.486671]).addTo(map);
+        var route = L.polyline([], { color: 'blue' }).addTo(map);
+        let trackingActive = false;
+
+        const socket = io("wss://d77d-2409-4070-2518-4a1e-457f-c22f-15a4-3048.ngrok-free.app", { transports: ["websocket"] });
+
+        socket.on("connect", function () {
+            document.getElementById("connection").innerText = "✅ WebSocket connected!";
+        });
+
+        socket.on("disconnect", function () {
+            document.getElementById("connection").innerText = "❌ WebSocket disconnected!";
+        });
+
+        socket.on("location_update", function (data) {
+            if (data.latitude && data.longitude) {
+                marker.setLatLng([data.latitude, data.longitude]);
+                route.addLatLng([data.latitude, data.longitude]);
+
+                if (trackingActive) {
+                    document.getElementById("status").innerText = "Live location started";
+                }
+            }
+        });
+
+        socket.on("tracking_status", function (data) {
+    console.log("📡 Received tracking status:", data); // Debugging log
+    if (data.status === "started") {
+        trackingActive = true;
+        document.getElementById("status").innerText = "Live location started";
+    } else {
+        trackingActive = false;
+        document.getElementById("status").innerText = "Live location stopped";
+    }
+});
+
+
+        document.getElementById("recenter").addEventListener("click", function () {
+            map.setView(marker.getLatLng(), 13);
+        });
+    </script>
+</body>
+</html>
