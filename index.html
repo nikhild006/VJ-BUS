@@ -12,54 +12,96 @@
 <body>
     <div class="container">
         <h1>📍 Live Route Tracking</h1>
-        <p id="status">Live location not started</p>
+        <p id="status">Select a device to start tracking</p>
         <p id="connection">Connecting to WebSocket...</p>
+
+        <label for="deviceSelect">🔄 Select Device:</label>
+        <select id="deviceSelect">
+            <option value="">-- Select Device --</option>
+            <option value="device_123">Device 123</option>
+            <option value="device_456">Device 456</option>
+            <option value="device_789">Device 789</option>
+        </select>
+
         <button id="recenter">🔄 Recenter Map</button>
         <div id="map"></div>
     </div>
 
     <script>
-        var map = L.map('map').setView([17.385044, 78.486671], 13);
+        var map = L.map('map').setView([17.385044,85], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-        var marker = L.marker([17.385044, 78.486671]).addTo(map);
-        var route = L.polyline([], { color: 'blue' }).addTo(map);
-        let trackingActive = false;
 
-        const socket = io("wss://d77d-2409-4070-2518-4a1e-457f-c22f-15a4-3048.ngrok-free.app", { transports: ["websocket"] });
+        var markers = {}; 
+        let selectedDevice = ""; 
+        const socket = io("wss://30e0-103-248-208-99.ngrok-free.app", { transports: ["websocket"] });
 
+        // WebSocket Connection
         socket.on("connect", function () {
+            console.log("✅ WebSocket Connected");
             document.getElementById("connection").innerText = "✅ WebSocket connected!";
         });
 
         socket.on("disconnect", function () {
+            console.log("❌ WebSocket Disconnected");
             document.getElementById("connection").innerText = "❌ WebSocket disconnected!";
         });
 
-        socket.on("location_update", function (data) {
-            if (data.latitude && data.longitude) {
-                marker.setLatLng([data.latitude, data.longitude]);
-                route.addLatLng([data.latitude, data.longitude]);
+        // Device Selection
+        document.getElementById("deviceSelect").addEventListener("change", function () {
+            selectedDevice = this.value;
+            console.log(`📡 Selected Device: ${selectedDevice}`);
+            document.getElementById("status").innerText = selectedDevice ? `Tracking ${selectedDevice}` : "Select a device to start tracking";
+        });
 
-                if (trackingActive) {
-                    document.getElementById("status").innerText = "Live location started";
+        // Location Updates
+        socket.on("location_update", function (data) {
+            console.log("📍 Location Update Received:", data);
+            
+            if (data.device_id && data.latitude && data.longitude) {
+                if (!markers[data.device_id]) {
+                    markers[data.device_id] = L.marker([data.latitude, data.longitude]).addTo(map);
+                } else {
+                    markers[data.device_id].setLatLng([data.latitude, data.longitude]);
                 }
+            }
+
+            if (data.device_id === selectedDevice) {
+                document.getElementById("status").innerText = `📡 Live tracking started for ${selectedDevice}`;
             }
         });
 
+        // Tracking Status
         socket.on("tracking_status", function (data) {
-    console.log("📡 Received tracking status:", data); // Debugging log
-    if (data.status === "started") {
-        trackingActive = true;
-        document.getElementById("status").innerText = "Live location started";
-    } else {
-        trackingActive = false;
-        document.getElementById("status").innerText = "Live location stopped";
-    }
-});
+            console.log("🔄 Tracking Status Update:", data);
+            
+            if (data.device_id === selectedDevice) {
+                if (data.status === "stopped") {
+                    document.getElementById("status").innerText = `❌ Live tracking stopped for ${selectedDevice}`;
+                } else if (data.status === "tracking_active") {
+                    document.getElementById("status").innerText = `📡 Live tracking started for ${selectedDevice}`;
+                }
+            }
+            else{
+                document.getElementById("status").innerText = `❌ Live tracking stopped for ${selectedDevice}`;
+            }
+        });
 
+        // Device Disconnected
+        socket.on("device_disconnected", function (data) {
+            console.log("🔌 Device Disconnected:", data);
+            
+            if (data.device_id && markers[data.device_id]) {
+                map.removeLayer(markers[data.device_id]);
+                delete markers[data.device_id];
+            }
+        });
 
+        // Recenter Button
         document.getElementById("recenter").addEventListener("click", function () {
-            map.setView(marker.getLatLng(), 13);
+            console.log("🔄 Recenter Map Clicked");
+            if (selectedDevice && markers[selectedDevice]) {
+                map.setView(markers[selectedDevice].getLatLng(), 13);
+            }
         });
     </script>
 </body>
