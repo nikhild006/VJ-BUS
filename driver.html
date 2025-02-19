@@ -1,74 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Driver Location Sender</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VJ Bus Driver</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+        }
+        .device-select {
+            margin-bottom: 20px;
+        }
+        .tracking-status, .connection-status {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .toggle-button {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .toggle-button.stop {
+            background-color: red;
+        }
+        .toggle-button.go {
+            background-color: blue;
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <div class="device-select">
+            <select id="deviceSelect">
+                <option value="device_123">device_123</option>
+                <option value="device_456">device_456</option>
+                <option value="device_789">device_789</option>
+            </select>
+        </div>
+        <div class="connection-status" id="connectionStatus">🔄 Connecting...</div>
+        <div class="tracking-status" id="trackingStatus">❌ Tracking OFF</div>
+        <div class="toggle-button go" id="toggleButton">GO</div>
+    </div>
 
-  <div class="container">
-    <h2>🚗 Driver Location Sender</h2>
-    <button id="start">GO</button>
-    <button id="stop" disabled>STOP</button>
-    <p id="status">Live location not started</p>
-    <p id="connection">Connecting to WebSocket...</p>
-  </div>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+        const websocketUrl = "ws://103.248.208.119:3110";
+        let isTracking = false;
+        let selectedDeviceId = 'device_123';
+        let socket = io(websocketUrl, { transports: ['websocket'], autoConnect: false });
+        socket.connect();
 
-  <script>
-    const deviceID = "device_123";
-    const socket = io("wss://fb6e-2405-201-c003-9035-788e-2b-8613-a0e3.ngrok-free.app", { transports: ["websocket"] });
-
-    let tracking = false;
-    let interval;
-
-    socket.on("connect", function () {
-      document.getElementById("connection").innerText = "✅ WebSocket connected!";
-    });
-
-    socket.on("disconnect", function () {
-      document.getElementById("connection").innerText = "❌ WebSocket disconnected!";
-    });
-
-    function sendLocation(lat, lon) {
-      socket.emit("location_update", { device_id: deviceID, latitude: lat, longitude: lon });
-    }
-
-    function getLocation() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(position => {
-          sendLocation(position.coords.latitude, position.coords.longitude);
+        socket.on('connect', () => {
+            document.getElementById('connectionStatus').textContent = "✅ Connected";
         });
-      }
-    }
 
-    document.getElementById("start").addEventListener("click", function () {
-    if (!tracking) {
-        tracking = true;
-        document.getElementById("start").disabled = true;
-        document.getElementById("stop").disabled = false;
-        document.getElementById("status").innerText = "Live location started";
-        interval = setInterval(getLocation, 1000);
+        socket.on('disconnect', () => {
+            document.getElementById('connectionStatus').textContent = "❌ Disconnected";
+        });
 
-        console.log("📡 Emitting tracking status: started");
-        socket.emit("tracking_status", { status: "started" }); // Send correct format
-    }
-});
+        document.getElementById('deviceSelect').addEventListener('change', (event) => {
+            if (isTracking) toggleTracking();
+            selectedDeviceId = event.target.value;
+        });
 
-document.getElementById("stop").addEventListener("click", function () {
-    tracking = false;
-    clearInterval(interval);
-    document.getElementById("start").disabled = false;
-    document.getElementById("stop").disabled = true;
-    document.getElementById("status").innerText = "Live location stopped";
+        document.getElementById('toggleButton').addEventListener('click', toggleTracking);
 
-    console.log("📡 Emitting tracking status: stopped");
-    socket.emit("tracking_status", { status: "stopped" }); // Send correct format
-});
+        function toggleTracking() {
+            if (isTracking) {
+                sendFinalBroadcast(selectedDeviceId);
+                setTimeout(() => {
+                    clearInterval(trackingTimer);
+                    document.getElementById('toggleButton').classList.remove('stop');
+                    document.getElementById('toggleButton').classList.add('go');
+                    document.getElementById('toggleButton').textContent = 'GO';
+                    document.getElementById('trackingStatus').textContent = `❌ Tracking OFF`;
+                    isTracking = false;
+                }, 1000);
+            } else {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(() => {
+                        document.getElementById('toggleButton').classList.remove('go');
+                        document.getElementById('toggleButton').classList.add('stop');
+                        document.getElementById('toggleButton').textContent = 'STOP';
+                        document.getElementById('trackingStatus').textContent = `📡 Tracking ON for ${selectedDeviceId}`;
+                        isTracking = true;
+                        startTracking();
+                    });
+                } else {
+                    alert("Geolocation is not supported by this browser.");
+                }
+            }
+        }
 
-  </script>
+        let trackingTimer;
+        function startTracking() {
+            trackingTimer = setInterval(() => {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    let trackingData = {
+                        device_id: selectedDeviceId,
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        status: 'tracking_active'
+                    };
+                    console.log(`📢 Location Update - Device: ${selectedDeviceId}, Data:`, trackingData);
+                    socket.emit('location_update', trackingData);
+                });
+            }, 5000);
+        }
 
+        function sendFinalBroadcast(deviceId) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                let finalBroadcast = {
+                    device_id: deviceId,
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    status: 'stopped'
+                };
+                console.log(`📢 Location Update - Device: ${deviceId}, Data:`, finalBroadcast);
+                socket.emit('location_update', finalBroadcast);
+            });
+        }
+    </script>
 </body>
 </html>
