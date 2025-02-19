@@ -9,7 +9,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const String websocketUrl = "wss://30e0-103-248-208-99.ngrok-free.app";
+const String websocketUrl = "ws://103.248.208.119:3110";
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +25,7 @@ class DriverLocationApp extends StatefulWidget {
 }
 
 class _DriverLocationAppState extends State<DriverLocationApp> {
-  bool isTracking = false;
+  dynamic isTracking = false; // Modified to handle loading state
   List<String> deviceIds = ['device_123', 'device_456', 'device_789'];
   String? selectedDeviceId;
   late IO.Socket socket;
@@ -46,7 +46,8 @@ class _DriverLocationAppState extends State<DriverLocationApp> {
 
   void _toggleTracking() async {
     final service = FlutterBackgroundService();
-    if (isTracking) {
+    if (isTracking == true) {
+      setState(() => isTracking = null); // Show loading state
       sendFinalBroadcast(selectedDeviceId!);
       await Future.delayed(Duration(seconds: 1));
       trackingTimer?.cancel();
@@ -108,7 +109,7 @@ class _DriverLocationAppState extends State<DriverLocationApp> {
               DropdownButton<String>(
                 value: selectedDeviceId,
                 onChanged: (newDevice) {
-                  if (isTracking) _toggleTracking();
+                  if (isTracking == true) _toggleTracking();
                   setState(() => selectedDeviceId = newDevice);
                 },
                 items: deviceIds.map((deviceId) {
@@ -120,7 +121,9 @@ class _DriverLocationAppState extends State<DriverLocationApp> {
               ),
               SizedBox(height: 20),
               Text(
-                isTracking ? "📡 Tracking ON for $selectedDeviceId" : "❌ Tracking OFF",
+                isTracking == true
+                    ? "📡 Tracking ON for $selectedDeviceId"
+                    : "❌ Tracking OFF",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 20),
@@ -130,14 +133,16 @@ class _DriverLocationAppState extends State<DriverLocationApp> {
                   width: 150,
                   height: 150,
                   decoration: BoxDecoration(
-                    color: isTracking ? Colors.red : Colors.blue,
+                    color: isTracking == true ? Colors.red : Colors.blue,
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
-                  child: Text(
-                    isTracking ? "STOP" : "GO",
-                    style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
+                  child: isTracking == null
+                      ? CircularProgressIndicator(color: Colors.white) // Loading animation
+                      : Text(
+                          isTracking == true ? "STOP" : "GO",
+                          style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                        ),
                 ),
               ),
             ],
