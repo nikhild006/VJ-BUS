@@ -32,8 +32,8 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
         var markers = {}; 
-        let selectedDevice = ""; 
-        const socket = io("wss://30e0-103-248-208-99.ngrok-free.app", { transports: ["websocket"] });
+        let selectedDevice = "";
+        const socket = io("ws://103.248.208.119:3110", { transports: ["websocket"] });
 
         // WebSocket Connection
         socket.on("connect", function () {
@@ -55,20 +55,29 @@
 
         // Location Updates
         socket.on("location_update", function (data) {
-            console.log("📍 Location Update Received:", data);
-            
-            if (data.device_id && data.latitude && data.longitude) {
-                if (!markers[data.device_id]) {
-                    markers[data.device_id] = L.marker([data.latitude, data.longitude]).addTo(map);
-                } else {
-                    markers[data.device_id].setLatLng([data.latitude, data.longitude]);
-                }
-            }
+    console.log("📍 Location Update Received:", data);
 
-            if (data.device_id === selectedDevice) {
-                document.getElementById("status").innerText = `📡 Live tracking started for ${selectedDevice}`;
-            }
-        });
+    if (data.device_id && data.latitude && data.longitude) {
+        if (!markers[data.device_id]) {
+            markers[data.device_id] = L.marker([data.latitude, data.longitude]).addTo(map);
+        } else {
+            markers[data.device_id].setLatLng([data.latitude, data.longitude]);
+        }
+    }
+
+    // Show only the selected device's marker
+    for (let device in markers) {
+        if (device === selectedDevice) {
+            map.addLayer(markers[device]);  // Ensure selected device is visible
+        } else {
+            map.removeLayer(markers[device]);  // Hide other devices
+        }
+    }
+
+    if (data.device_id === selectedDevice) {
+        document.getElementById("status").innerText = `📡 Live tracking started for ${selectedDevice}`;
+    }
+});
 
         // Tracking Status
         socket.on("tracking_status", function (data) {
