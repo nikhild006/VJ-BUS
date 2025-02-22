@@ -3,113 +3,224 @@
 <head>
     <title>Live Route Tracking</title>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=route-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        #map {
+            height: 500px;
+            margin-top: 10px;
+            border-radius: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+        #recenter { background: #007bff; color: white; }
+        #find-distance { background: #28a745; color: white; }
+        .chat-button {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: #007bff;
+        color: white;
+        z-index: 1000 !important; 
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        font-size: 24px;
+        transition: background 0.3s ease;
+        text-decoration: none;
+    }
+
+    .chat-button:hover {
+        background-color: #0056b3;
+    }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>📍 Live Route Tracking</h1>
-        <p id="status">Select a device to start tracking</p>
-        <p id="connection">Connecting to WebSocket...</p>
+        <p id="status">Select a route to start tracking</p>
+        <p id="connection">Loading...</p>
 
-        <label for="deviceSelect">🔄 Select Device:</label>
-        <select id="deviceSelect">
-            <option value="">-- Select Device --</option>
-            <option value="device_123">Device 123</option>
-            <option value="device_456">Device 456</option>
-            <option value="device_789">Device 789</option>
+        <label for="routeSelect">🔄 Select Route:</label>
+        <select id="routeSelect">
+            <option value="">-- Select Route --</option>
         </select>
+
+        <button id="find-distance" style="display: none;">📏 Find Distance</button>
+        <p id="distance-time">📏 Distance: -- | ⏳ ETA: --</p>
+        <p id="last-updated" style="color: gray; font-size: 14px;"></p>
 
         <button id="recenter">🔄 Recenter Map</button>
         <div id="map"></div>
     </div>
+    <a href="#" id="chatLink" class="chat-button">💬</a>
 
     <script>
-        var map = L.map('map').setView([17.385044,85], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+        document.getElementById("chatLink").addEventListener("click", function () {
+            window.location.href = "http://localhost:3104/chat"; // Replace with your actual chat link
+        });
+    </script>
 
-        var markers = {}; 
-        let selectedDevice = "";
-        const socket = io("ws://103.248.208.119:3110", { transports: ["websocket"] });
+    <script>
+        var map = L.map("map").setView([17.540529, 78.387034], 13);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18 }).addTo(map);
+        // import L from 'leaflet';
 
-        // WebSocket Connection
+// Define a custom icon
+    const customIcon = L.icon({
+        iconUrl: 'https://cdn1.iconfinder.com/data/icons/leto-blue-map-pins/64/pin_marker_location-31-1024.png', // Change this to the actual path
+        iconSize: [32, 32], // Size of the icon
+        iconAnchor: [16, 32], // Point of the icon which corresponds to marker's location
+        popupAnchor: [0, -32] // Point where the popup should open relative to the iconAnchor
+    });
+
+    // Create a marker with the custom icon
+    // const marker = L.marker([17.540529, 78.387034],  { icon: customIcon }).addTo(map);
+
+
+        var markers = {};
+        let selectedRoute = "";
+        let latestBusLocation = null;
+        const socket = io("wss://de40-2405-201-c003-9035-9d95-cbfe-fff7-ad03.ngrok-free.app", { transports: ["websocket"] });
+
+        let routes = ["Route-1", "Route-2", "Route-3", "Route-4A", "Route-4B", "Route-5", "Route-6", "Route-7", "Route-8", "Route-9", "Route-10", 
+            "Route-S-1", "Route-S-2", "Route-S-3", "Route-S-41", "Route-S-42", "Route-S-43", "Route-S-44", "Route-S-5", "Route-S-6", "Route-S-7", "Route-S-8"];
+
+        const routeSelect = document.getElementById("routeSelect");
+        routes.forEach((route) => {
+            let option = document.createElement("option");
+            option.value = route;
+            option.textContent = route;
+            routeSelect.appendChild(option);
+        });
+
         socket.on("connect", function () {
-            console.log("✅ WebSocket Connected");
-            document.getElementById("connection").innerText = "✅ WebSocket connected!";
+            document.getElementById("connection").innerText = "🚌 Let's Goo..!!";
         });
 
         socket.on("disconnect", function () {
-            console.log("❌ WebSocket Disconnected");
-            document.getElementById("connection").innerText = "❌ WebSocket disconnected!";
+            document.getElementById("connection").innerText = "🧘 Patience is bitter, but its fruit is sweet.. 🧘‍♀️";
         });
 
-        // Device Selection
-        document.getElementById("deviceSelect").addEventListener("change", function () {
-            selectedDevice = this.value;
-            console.log(`📡 Selected Device: ${selectedDevice}`);
-            document.getElementById("status").innerText = selectedDevice ? `Tracking ${selectedDevice}` : "Select a device to start tracking";
+        routeSelect.addEventListener("change", function () {
+            if (selectedRoute) {
+                socket.emit("unsubscribe", selectedRoute);
+            }
+            selectedRoute = this.value;
+            document.getElementById("status").innerText = selectedRoute ? `Tracking ${selectedRoute}` : "Select a route to start tracking";
+            document.getElementById("find-distance").style.display = "none"; // Hide "Find Distance" button
+
+            if (selectedRoute) {
+                socket.emit("subscribe", selectedRoute);
+            }
         });
 
-        // Location Updates
+        function getUserLocation(callback) {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        callback(`${lon},${lat}`);
+                    },
+                    (error) => {
+                        console.error("Error fetching user location", error);
+                        callback(null);
+                    }
+                );
+            } else {
+                console.error("Geolocation is not supported by this browser.");
+                callback(null);
+            }
+        }
+
+        async function getDistanceTime(origin, destination) {
+            const apiKey = "5b3ce3597851110001cf62482857e9e0b56340e5b71e320b96d88bec";  
+            const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${apiKey}&start=${encodeURIComponent(origin)}&end=${encodeURIComponent(destination)}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                const segment = data.features[0].properties.segments[0];  // Corrected path
+                
+                const distance = (segment.distance / 1000).toFixed(2) + " km";  // Convert meters to km
+                const duration = (segment.duration / 60).toFixed(2) + " min";  // Convert seconds to minutes
+
+                document.getElementById("distance-time").innerText = `📏 Distance: ${distance} | ⏳ ETA: ${duration}`;
+                document.getElementById("last-updated").innerText = `Last updated: ${new Date().toLocaleTimeString()}`;
+                
+            } catch (error) {
+                console.error("❌ Error fetching data:", error);
+            }
+        }
+
         socket.on("location_update", function (data) {
-    console.log("📍 Location Update Received:", data);
+            if (data.route_id !== selectedRoute) return;
 
-    if (data.device_id && data.latitude && data.longitude) {
-        if (!markers[data.device_id]) {
-            markers[data.device_id] = L.marker([data.latitude, data.longitude]).addTo(map);
-        } else {
-            markers[data.device_id].setLatLng([data.latitude, data.longitude]);
-        }
-    }
+            if (data.latitude && data.longitude && data.status === "tracking_active") {
+                latestBusLocation = `${data.longitude},${data.latitude}`;
+                document.getElementById("find-distance").style.display = "inline-block";
 
-    // Show only the selected device's marker
-    for (let device in markers) {
-        if (device === selectedDevice) {
-            map.addLayer(markers[device]);  // Ensure selected device is visible
-        } else {
-            map.removeLayer(markers[device]);  // Hide other devices
-        }
-    }
-
-    if (data.device_id === selectedDevice) {
-        document.getElementById("status").innerText = `📡 Live tracking started for ${selectedDevice}`;
-    }
-});
-
-        // Tracking Status
-        socket.on("tracking_status", function (data) {
-            console.log("🔄 Tracking Status Update:", data);
-            
-            if (data.device_id === selectedDevice) {
-                if (data.status === "stopped") {
-                    document.getElementById("status").innerText = `❌ Live tracking stopped for ${selectedDevice}`;
-                } else if (data.status === "tracking_active") {
-                    document.getElementById("status").innerText = `📡 Live tracking started for ${selectedDevice}`;
+                if (!markers[selectedRoute]) {
+                    markers[selectedRoute] = L.marker([data.latitude, data.longitude], { icon: customIcon }).addTo(map);
+                } else {
+                    markers[selectedRoute].setLatLng([data.latitude, data.longitude]);
                 }
+
+                document.getElementById("status").innerText = `🚌 Live tracking started for ${selectedRoute}`;
             }
-            else{
-                document.getElementById("status").innerText = `❌ Live tracking stopped for ${selectedDevice}`;
+            else if (data.status === "stopped") {
+                if (markers[selectedRoute]) {
+                    markers[selectedRoute].remove();
+                    delete markers[selectedRoute];
+                }
+                document.getElementById("status").innerText = `🛑 Live tracking stopped for ${selectedRoute}`;
+                document.getElementById("find-distance").style.display = "none"; // Hide "Find Distance" button
             }
         });
 
-        // Device Disconnected
-        socket.on("device_disconnected", function (data) {
-            console.log("🔌 Device Disconnected:", data);
-            
-            if (data.device_id && markers[data.device_id]) {
-                map.removeLayer(markers[data.device_id]);
-                delete markers[data.device_id];
-            }
+        document.getElementById("find-distance").addEventListener("click", function () {
+            if (!latestBusLocation) return;
+
+            getUserLocation((userLocation) => {
+                if (userLocation) {
+                    getDistanceTime(userLocation, latestBusLocation);
+                    // getDistanceTime("78.3948765, 17.5500823", latestBusLocation);
+                }
+            });
         });
 
-        // Recenter Button
         document.getElementById("recenter").addEventListener("click", function () {
-            console.log("🔄 Recenter Map Clicked");
-            if (selectedDevice && markers[selectedDevice]) {
-                map.setView(markers[selectedDevice].getLatLng(), 13);
+            if (selectedRoute && markers[selectedRoute]) {
+                map.setView(markers[selectedRoute].getLatLng(), 13);
             }
         });
     </script>
