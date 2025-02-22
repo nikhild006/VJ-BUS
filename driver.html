@@ -17,7 +17,7 @@
         .container {
             text-align: center;
         }
-        .device-select {
+        .route-select {
             margin-bottom: 20px;
         }
         .tracking-status, .connection-status {
@@ -47,12 +47,9 @@
 </head>
 <body>
     <div class="container">
-        <div class="device-select">
-            <select id="deviceSelect">
-                <option value="device_123">device_123</option>
-                <option value="device_456">device_456</option>
-                <option value="device_789">device_789</option>
-            </select>
+        <div class="route-select">
+            <label for="routeSelect">Select route:</label>
+            <select id="routeSelect"></select>
         </div>
         <div class="connection-status" id="connectionStatus">🔄 Connecting...</div>
         <div class="tracking-status" id="trackingStatus">❌ Tracking OFF</div>
@@ -61,30 +58,53 @@
 
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
-        const websocketUrl = "ws://103.248.208.119:3110";
+        const websocketUrl = "wss://de40-2405-201-c003-9035-9d95-cbfe-fff7-ad03.ngrok-free.app";
         let isTracking = false;
-        let selectedDeviceId = 'device_123';
+        let selectedrouteId = "";
         let socket = io(websocketUrl, { transports: ['websocket'], autoConnect: false });
         socket.connect();
 
+        // route list (Replace this with API fetching if needed)
+        const routes =['Route-1', 'Route-2', 'Route-3', 'Route-4A','Route-4B', 'Route-5', 'Route-6', 'Route-7', 'Route-8', 'Route-9', 'Route-10', 
+        'Route-S-1', 'Route-S-2', 'Route-S-3', 'Route-S-41','Route-S-42','Route-S-43','Route-S-44', 'Route-S-5', 'Route-S-6', 'Route-S-7', 'Route-S-8'];
+;
+
+        function populateRouteDropdown() {
+            const selectElement = document.getElementById("routeSelect");
+            selectElement.innerHTML = '<option value="">-- Select route --</option>'; 
+            routes.forEach(route => {
+                const option = document.createElement("option");
+                option.value = route;
+                option.textContent = route;
+                selectElement.appendChild(option);
+            });
+        }
+
+        populateRouteDropdown();
+
         socket.on('connect', () => {
-            document.getElementById('connectionStatus').textContent = "✅ Connected";
+            document.getElementById('connectionStatus').textContent = "⚫⚫🟢";
         });
 
         socket.on('disconnect', () => {
-            document.getElementById('connectionStatus').textContent = "❌ Disconnected";
+            document.getElementById('connectionStatus').textContent = "🔴⚫⚫";
         });
 
-        document.getElementById('deviceSelect').addEventListener('change', (event) => {
+        document.getElementById('routeSelect').addEventListener('change', (event) => {
             if (isTracking) toggleTracking();
-            selectedDeviceId = event.target.value;
+            selectedRouteId = event.target.value;
         });
 
         document.getElementById('toggleButton').addEventListener('click', toggleTracking);
 
         function toggleTracking() {
+            if (!selectedRouteId) {
+                alert("Please select a Route first!");
+                return;
+            }
+
             if (isTracking) {
-                sendFinalBroadcast(selectedDeviceId);
+                sendFinalBroadcast(selectedRouteId);
                 setTimeout(() => {
                     clearInterval(trackingTimer);
                     document.getElementById('toggleButton').classList.remove('stop');
@@ -99,7 +119,7 @@
                         document.getElementById('toggleButton').classList.remove('go');
                         document.getElementById('toggleButton').classList.add('stop');
                         document.getElementById('toggleButton').textContent = 'STOP';
-                        document.getElementById('trackingStatus').textContent = `📡 Tracking ON for ${selectedDeviceId}`;
+                        document.getElementById('trackingStatus').textContent = `📡 Tracking ON for ${selectedRouteId}`;
                         isTracking = true;
                         startTracking();
                     });
@@ -114,26 +134,26 @@
             trackingTimer = setInterval(() => {
                 navigator.geolocation.getCurrentPosition((position) => {
                     let trackingData = {
-                        device_id: selectedDeviceId,
+                        route_id: selectedRouteId,
                         latitude: position.coords.latitude,
                         longitude: position.coords.longitude,
                         status: 'tracking_active'
                     };
-                    console.log(`📢 Location Update - Device: ${selectedDeviceId}, Data:`, trackingData);
+                    console.log(`📢 Location Update - Route: ${selectedRouteId}, Data:`, trackingData);
                     socket.emit('location_update', trackingData);
                 });
             }, 5000);
         }
 
-        function sendFinalBroadcast(deviceId) {
+        function sendFinalBroadcast(routeId) {
             navigator.geolocation.getCurrentPosition((position) => {
                 let finalBroadcast = {
-                    device_id: deviceId,
+                    route_id: routeId,
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude,
                     status: 'stopped'
                 };
-                console.log(`📢 Location Update - Device: ${deviceId}, Data:`, finalBroadcast);
+                console.log(`📢 Location Update - Route: ${routeId}, Data:`, finalBroadcast);
                 socket.emit('location_update', finalBroadcast);
             });
         }
