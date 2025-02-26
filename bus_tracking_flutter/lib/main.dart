@@ -9,7 +9,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const String websocketUrl = "ws://103.248.208.119:3110";
+const String websocketUrl = "wss://bus.vnrzone.site";
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,16 +25,19 @@ class DriverLocationApp extends StatefulWidget {
 }
 
 class _DriverLocationAppState extends State<DriverLocationApp> {
-  dynamic isTracking = false; // Modified to handle loading state
-  List<String> deviceIds = ['device_123', 'device_456', 'device_789'];
-  String? selectedDeviceId;
+  dynamic isTracking = false;
+  final List<String> routes = [
+    'Route-1', 'Route-2', 'Route-3', 'Route-4A','Route-4B', 'Route-5', 'Route-6', 'Route-7', 'Route-8', 'Route-9', 'Route-10', 
+    'Route-S-1', 'Route-S-2', 'Route-S-3', 'Route-S-41','Route-S-42','Route-S-43','Route-S-44', 'Route-S-5', 'Route-S-6', 'Route-S-7', 'Route-S-8'
+  ];
+  String? selectedRouteId;
   late IO.Socket socket;
   Timer? trackingTimer;
 
   @override
   void initState() {
     super.initState();
-    selectedDeviceId = deviceIds.first;
+    _loadSelectedRoute();
     socket = IO.io(
       websocketUrl,
       IO.OptionBuilder().setTransports(['websocket']).disableAutoConnect().build(),
@@ -44,11 +47,19 @@ class _DriverLocationAppState extends State<DriverLocationApp> {
     socket.onDisconnect((_) => print("Socket Disconnected ❌"));
   }
 
+  Future<void> _loadSelectedRoute() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      selectedRouteId = prefs.getString("selectedRoute") ?? routes.first;
+    });
+  }
+
   void _toggleTracking() async {
     final service = FlutterBackgroundService();
     if (isTracking == true) {
-      setState(() => isTracking = null); // Show loading state
-      sendFinalBroadcast(selectedDeviceId!);
+      setState(() => isTracking = null);
+      await Future.delayed(Duration(seconds: 2)); // Added delay
+      sendFinalBroadcast(selectedRouteId!);
       await Future.delayed(Duration(seconds: 1));
       trackingTimer?.cancel();
       service.invoke("stopService");
@@ -57,7 +68,7 @@ class _DriverLocationAppState extends State<DriverLocationApp> {
     } else {
       if (await Permission.location.request().isGranted) {
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString("selectedDevice", selectedDeviceId!);
+        await prefs.setString("selectedRoute", selectedRouteId!);
         service.startService();
         WakelockPlus.enable();
         setState(() => isTracking = true);
@@ -74,25 +85,25 @@ class _DriverLocationAppState extends State<DriverLocationApp> {
     trackingTimer = Timer.periodic(Duration(seconds: 5), (timer) async {
       Position position = await Geolocator.getCurrentPosition();
       Map<String, dynamic> trackingData = {
-        "device_id": selectedDeviceId,
+        "route_id": selectedRouteId,
         "latitude": position.latitude,
         "longitude": position.longitude,
         "status": "tracking_active"
       };
-      print("📢 Location Update - Device: $selectedDeviceId, Data: $trackingData");
+      print("📢 Location Update - Route: $selectedRouteId, Data: $trackingData");
       socket.emit("location_update", trackingData);
     });
   }
 
-  void sendFinalBroadcast(String deviceId) async {
+  void sendFinalBroadcast(String routeId) async {
     Position position = await Geolocator.getCurrentPosition();
     Map<String, dynamic> finalBroadcast = {
-      "device_id": deviceId,
+      "route_id": routeId,
       "latitude": position.latitude,
       "longitude": position.longitude,
       "status": "stopped"
     };
-    print("📢 Location Update - Device: $deviceId, Data: $finalBroadcast");
+    print("📢 Location Update - Route: $routeId, Data: $finalBroadcast");
     socket.emit("location_update", finalBroadcast);
   }
 
@@ -101,28 +112,29 @@ class _DriverLocationAppState extends State<DriverLocationApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        appBar: AppBar(title: Text("🚗 Driver Location Sender")),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               DropdownButton<String>(
-                value: selectedDeviceId,
-                onChanged: (newDevice) {
+                value: selectedRouteId,
+                onChanged: (newRoute) async {
                   if (isTracking == true) _toggleTracking();
-                  setState(() => selectedDeviceId = newDevice);
+                  SharedPreferences prefs = await SharedPreferences.getInstance();
+                  await prefs.setString("selectedRoute", newRoute!);
+                  setState(() => selectedRouteId = newRoute);
                 },
-                items: deviceIds.map((deviceId) {
+                items: routes.map((routeId) {
                   return DropdownMenuItem(
-                    value: deviceId,
-                    child: Text(deviceId),
+                    value: routeId,
+                    child: Text(routeId),
                   );
                 }).toList(),
               ),
               SizedBox(height: 20),
               Text(
                 isTracking == true
-                    ? "📡 Tracking ON for $selectedDeviceId"
+                    ? "📡 Tracking ON for $selectedRouteId"
                     : "❌ Tracking OFF",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
@@ -138,7 +150,7 @@ class _DriverLocationAppState extends State<DriverLocationApp> {
                   ),
                   alignment: Alignment.center,
                   child: isTracking == null
-                      ? CircularProgressIndicator(color: Colors.white) // Loading animation
+                      ? CircularProgressIndicator(color: Colors.white)
                       : Text(
                           isTracking == true ? "STOP" : "GO",
                           style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
@@ -168,7 +180,7 @@ Future<void> initializeService() async {
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
-  String? selectedDevice = prefs.getString("selectedDevice");
+  String? selectedRoute = prefs.getString("selectedRoute");
 
   IO.Socket socket = IO.io(
     websocketUrl,
@@ -181,6 +193,6 @@ void onStart(ServiceInstance service) async {
   service.on("stopService").listen((event) {
     service.stopSelf();
     print("Service Stopped 🛑");
-    socket.emit("tracking_status", {"device_id": selectedDevice, "status": "stopped"});
+    socket.emit("tracking_status", {"route_id": selectedRoute, "status": "stopped"});
   });
 }
