@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:flutter_background_service_android/flutter_background_service_android.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
@@ -27,8 +25,8 @@ class DriverLocationApp extends StatefulWidget {
 class _DriverLocationAppState extends State<DriverLocationApp> {
   dynamic isTracking = false;
   final List<String> routes = [
-    'Route-1', 'Route-2', 'Route-3', 'Route-4A','Route-4B', 'Route-5', 'Route-6', 'Route-7', 'Route-8', 'Route-9', 'Route-10', 
-    'Route-S-1', 'Route-S-2', 'Route-S-3', 'Route-S-41','Route-S-42','Route-S-43','Route-S-44', 'Route-S-5', 'Route-S-6', 'Route-S-7', 'Route-S-8'
+    'Route-1', 'Route-2', 'Route-3', 'Route-4A','Route-4B', 'Route-5', 'Route-6', 'Route-7', 'Route-8', 'Route-9', 'Route-10', 'Route-11',
+    'Route-S-1', 'Route-S-2', 'Route-S-3','Route-S-4', 'Route-S-41','Route-S-42','Route-S-43','Route-S-44', 'Route-S-5', 'Route-S-6', 'Route-S-7', 'Route-S-8', 'Route-S-9', 'Route-S-10'
   ];
   String? selectedRouteId;
   late IO.Socket socket;
