@@ -17,7 +17,11 @@
         .container {
             text-align: center;
         }
+<<<<<<< HEAD
         .route-select {
+=======
+        .device-select {
+>>>>>>> 81ee47b (working2.0)
             margin-bottom: 20px;
         }
         .tracking-status, .connection-status {
@@ -47,9 +51,18 @@
 </head>
 <body>
     <div class="container">
+<<<<<<< HEAD
         <div class="route-select">
             <label for="routeSelect">Select route:</label>
             <select id="routeSelect"></select>
+=======
+        <div class="device-select">
+            <select id="deviceSelect">
+                <option value="device_123">device_123</option>
+                <option value="device_456">device_456</option>
+                <option value="device_789">device_789</option>
+            </select>
+>>>>>>> 81ee47b (working2.0)
         </div>
         <div class="connection-status" id="connectionStatus">🔄 Connecting...</div>
         <div class="tracking-status" id="trackingStatus">❌ Tracking OFF</div>
@@ -58,6 +71,7 @@
 
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
+<<<<<<< HEAD
         const websocketUrl = "wss://de40-2405-201-c003-9035-9d95-cbfe-fff7-ad03.ngrok-free.app";
         let isTracking = false;
         let selectedrouteId = "";
@@ -93,11 +107,31 @@
         document.getElementById('routeSelect').addEventListener('change', (event) => {
             if (isTracking) toggleTracking();
             selectedRouteId = event.target.value;
+=======
+        const websocketUrl = "ws://103.248.208.119:3110";
+        let isTracking = false;
+        let selectedDeviceId = 'device_123';
+        let socket = io(websocketUrl, { transports: ['websocket'], autoConnect: false });
+        socket.connect();
+
+        socket.on('connect', () => {
+            document.getElementById('connectionStatus').textContent = "✅ Connected";
+        });
+
+        socket.on('disconnect', () => {
+            document.getElementById('connectionStatus').textContent = "❌ Disconnected";
+        });
+
+        document.getElementById('deviceSelect').addEventListener('change', (event) => {
+            if (isTracking) toggleTracking();
+            selectedDeviceId = event.target.value;
+>>>>>>> 81ee47b (working2.0)
         });
 
         document.getElementById('toggleButton').addEventListener('click', toggleTracking);
 
         function toggleTracking() {
+<<<<<<< HEAD
             if (!selectedRouteId) {
                 alert("Please select a Route first!");
                 return;
@@ -149,11 +183,63 @@
             navigator.geolocation.getCurrentPosition((position) => {
                 let finalBroadcast = {
                     route_id: routeId,
+=======
+            if (isTracking) {
+                sendFinalBroadcast(selectedDeviceId);
+                setTimeout(() => {
+                    clearInterval(trackingTimer);
+                    document.getElementById('toggleButton').classList.remove('stop');
+                    document.getElementById('toggleButton').classList.add('go');
+                    document.getElementById('toggleButton').textContent = 'GO';
+                    document.getElementById('trackingStatus').textContent = `❌ Tracking OFF`;
+                    isTracking = false;
+                }, 1000);
+            } else {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(() => {
+                        document.getElementById('toggleButton').classList.remove('go');
+                        document.getElementById('toggleButton').classList.add('stop');
+                        document.getElementById('toggleButton').textContent = 'STOP';
+                        document.getElementById('trackingStatus').textContent = `📡 Tracking ON for ${selectedDeviceId}`;
+                        isTracking = true;
+                        startTracking();
+                    });
+                } else {
+                    alert("Geolocation is not supported by this browser.");
+                }
+            }
+        }
+
+        let trackingTimer;
+        function startTracking() {
+            trackingTimer = setInterval(() => {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    let trackingData = {
+                        device_id: selectedDeviceId,
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        status: 'tracking_active'
+                    };
+                    console.log(`📢 Location Update - Device: ${selectedDeviceId}, Data:`, trackingData);
+                    socket.emit('location_update', trackingData);
+                });
+            }, 5000);
+        }
+
+        function sendFinalBroadcast(deviceId) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                let finalBroadcast = {
+                    device_id: deviceId,
+>>>>>>> 81ee47b (working2.0)
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude,
                     status: 'stopped'
                 };
+<<<<<<< HEAD
                 console.log(`📢 Location Update - Route: ${routeId}, Data:`, finalBroadcast);
+=======
+                console.log(`📢 Location Update - Device: ${deviceId}, Data:`, finalBroadcast);
+>>>>>>> 81ee47b (working2.0)
                 socket.emit('location_update', finalBroadcast);
             });
         }

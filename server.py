@@ -173,4 +173,8 @@ def handle_message(data):
 
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     socketio.run(app, host="0.0.0.0", port=6080, debug=True)
+=======
+    socketio.run(app, host="0.0.0.0", port=3000, debug=True)  # Use port 80
+>>>>>>> 81ee47b (working2.0)
