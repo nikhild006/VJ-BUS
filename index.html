@@ -28,7 +28,7 @@ body, html {
     z-index: 1;
 }
 
-/* Tracking Card */
+/* Tracking Card with white background
 .container {
     position: absolute;
     bottom: 80px;
@@ -36,14 +36,58 @@ body, html {
     transform: translateX(-50%);
     width: 90%;
     max-width: 600px;
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.714);
     padding: 15px;
     box-shadow: 0px -4px 10px rgba(0, 0, 0, 0.2);
-    border-radius: 15px 15px 0 0;
+    border-radius: 35px 35px 0 0;
+    z-index: 1000;
+    text-align: center;
+    display: none;
+} */
+
+
+
+/* Tracking card with semi transparent background */
+.container {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    backdrop-filter: blur(2px); 
+    max-width: 600px;
+    background: rgba(255, 255, 255, 0.714);
+    padding: 15px;
+    box-shadow: 0px -4px 10px rgba(0, 0, 0, 0.2);
+    border-radius: 35px 35px 0 0;
     z-index: 1000;
     text-align: center;
     display: none;
 }
+
+
+ 
+/* Tracking Card - Glassy Effect */
+/* .container {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 600px;
+    background: rgba(255, 255, 255, 0.2); 
+    backdrop-filter: blur(10px); 
+    -webkit-backdrop-filter: blur(10px);
+    padding: 15px;
+    box-shadow: 0px -4px 10px rgba(0, 0, 0, 0.2);
+    border-radius: 35px 35px 0 0;
+    z-index: 1000;
+    text-align: center;
+    display: none;
+    border: 1px solid rgba(255, 255, 255, 0.3); 
+}  */
+
+
 
 /* Dropdown & Buttons */
 button, select {
