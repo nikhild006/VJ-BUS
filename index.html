@@ -395,9 +395,12 @@ findDistanceBtn.addEventListener("click", function () {
 // Recenter button click
 recenterBtn.addEventListener("click", function () {
     if (selectedRoute && markers[selectedRoute]) {
-        map.setView(markers[selectedRoute].getLatLng(), 13);
+        let markerPosition = markers[selectedRoute].getLatLng();
+        let offsetLat = -0.006; // Adjust this value to move the map slightly upward
+        map.setView([markerPosition.lat + offsetLat, markerPosition.lng], 13);
     }
 });
+
 
     </script>
 </body>
