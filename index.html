@@ -229,7 +229,11 @@ select {
         <script>
     // Initialize map
 var map = L.map("map").setView([17.540529, 78.387034], 13);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18 }).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    updateWhenZooming: false,
+    useCache:true,
+    updateWhenIdle: true
+}).addTo(map);
 
 let latestBusLocation = null;
 const trackBtn = document.getElementById("trackBtn");
