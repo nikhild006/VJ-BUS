@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -357,29 +358,56 @@ function getUserLocation(callback) {
 
 // Fetch distance and ETA
 async function getDistanceTime(origin, destination) {
-    const apiKey = "5b3ce3597851110001cf62482857e9e0b56340e5b71e320b96d88bec";
-    const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${apiKey}&start=${encodeURIComponent(origin)}&end=${encodeURIComponent(destination)}`;
+    const apiKey = "pCHW0kIg3AOAN475zzPLjq4WNJLWdXMz"; 
+
+    // Ensure origin and destination are correctly formatted
+    if (typeof origin !== "string" || !origin.includes(",")) {
+        console.error("Invalid origin format. Expected 'latitude,longitude'");
+        return;
+    }
+
+    if (typeof destination !== "string" || !destination.includes(",")) {
+        console.error("Invalid destination format. Expected 'latitude,longitude'");
+        return;
+    }
+
+    // Convert from "longitude,latitude" to "latitude,longitude"
+    const [originLng, originLat] = origin.split(",");
+    const [destinationLng, destinationLat] = destination.split(",");
+
+    const correctedOrigin = `${originLat},${originLng}`;
+    const correctedDestination = `${destinationLat},${destinationLng}`;
+
+    // Correct URL format using ":" instead of "/"
+    const url = `https://api.tomtom.com/routing/1/calculateRoute/${correctedOrigin}:${correctedDestination}/json?key=${apiKey}&traffic=true&routeType=fastest`;
 
     try {
         const response = await fetch(url);
         const data = await response.json();
-        const segment = data.features[0].properties.segments[0];
 
-        const distance = (segment.distance / 1000).toFixed(2) + " km"; // Convert meters to km
-        const duration = (segment.duration / 60).toFixed(2) + " min"; // Convert seconds to minutes
+        if (data.routes && data.routes.length > 0) {
+            const route = data.routes[0].summary;
 
-        if (distanceTimeText) {
-            distanceTimeText.innerText = `📏 Distance: ${distance} | ⏳ ETA: ${duration}`;
-            distanceTimeText.style.display = "block"; // Show distance text
-        }
-        if (lastUpdatedText) {
-            lastUpdatedText.innerText = `Last updated: ${new Date().toLocaleTimeString()}`;
-            lastUpdatedText.style.display = "block"; // Show last updated text
+            const distance = (route.lengthInMeters / 1000).toFixed(2) + " km"; // Convert meters to km
+            const duration = (route.travelTimeInSeconds / 60).toFixed(2) + " min"; // Convert seconds to minutes
+
+            if (typeof distanceTimeText !== "undefined" && distanceTimeText) {
+                distanceTimeText.innerText = `📏 Distance: ${distance} | ⏳ ETA: ${duration}`;
+                distanceTimeText.style.display = "block"; // Show distance text
+            }
+
+            if (typeof lastUpdatedText !== "undefined" && lastUpdatedText) {
+                lastUpdatedText.innerText = `Last updated: ${new Date().toLocaleTimeString()}`;
+                lastUpdatedText.style.display = "block"; // Show last updated text
+            }
+        } else {
+            console.warn("No route found!");
         }
     } catch (error) {
-        console.error("❌ Error fetching data:", error);
+        console.error("❌ Error fetching TomTom Traffic API data:", error);
     }
 }
+
 
 // Update Find Distance and Recenter button visibility
 function updateFindDistanceVisibility() {
@@ -435,6 +463,7 @@ findDistanceBtn.addEventListener("click", function () {
 
     getUserLocation((userLocation) => {
         if (userLocation) {
+            console.log(typeof latestBusLocation, typeof userLocation);
             getDistanceTime(userLocation, latestBusLocation);
         }
     });
