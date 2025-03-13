@@ -424,19 +424,20 @@ function updateFindDistanceVisibility() {
     }
 }
 
+let firstRecenter = {}; // Track first recenter per route
+
 socket.on("location_update", function (data) {
     if (!data.route_id) return;
 
     let routeOption = document.querySelector(`#routeSelect option[value='${data.route_id}']`);
-    if (!routeOption) return; // If the route is not in the dropdown, skip
+    if (!routeOption) return;
 
-    // Remove any existing dot (🟢 or 🔴) before updating
-    routeOption.textContent = routeOption.value; 
+    routeOption.textContent = routeOption.value; // Remove any existing dot before updating
 
     if (data.status === "tracking_active") {
-        routeOption.textContent = `🟢 ${data.route_id}`; // Add green dot for active tracking
+        routeOption.textContent = `🟢 ${data.route_id}`;
     } else if (data.status === "stopped") {
-        routeOption.textContent = `🔴 ${data.route_id}`; // Add red dot for stopped tracking
+        routeOption.textContent = `🔴 ${data.route_id}`;
     }
 
     if (data.route_id !== selectedRoute) return;
@@ -454,21 +455,22 @@ socket.on("location_update", function (data) {
             markers[selectedRoute].setLatLng([data.latitude, data.longitude]);
         }
 
-        console.log(data);
-        if (statusText) statusText.innerText = `🚌 Live tracking started for ${selectedRoute}`;
+        // **Auto recenter only the first time tracking starts**
+        if (!firstRecenter[selectedRoute]) {
+            firstRecenter[selectedRoute] = true; // Mark as recentered
+            map.setView([data.latitude, data.longitude], 13);
+        }
     } else if (data.status === "stopped") {
         if (markers[selectedRoute] && markers[selectedRoute]._map) {
             markers[selectedRoute].remove();
         }
-        console.log(data);
-        if (statusText) statusText.innerText = `🛑 Live tracking stopped for ${selectedRoute}`;
 
+        firstRecenter[selectedRoute] = false; // Reset first recenter flag
         latestBusLocation = null;
-        distanceTimeText.style.display = "none";
-        lastUpdatedText.style.display = "none";
         updateFindDistanceVisibility();
     }
 });
+
 
 // Find distance button click
 findDistanceBtn.addEventListener("click", function () {
@@ -482,14 +484,15 @@ findDistanceBtn.addEventListener("click", function () {
     });
 });
 
-// Recenter button click
+// **Recenter button click - manually recenter anytime**
 recenterBtn.addEventListener("click", function () {
     if (selectedRoute && markers[selectedRoute]) {
         let markerPosition = markers[selectedRoute].getLatLng();
-        let offsetLat = -0.008; // Adjust this value to move the map slightly upward
+        let offsetLat = -0.008; // Adjust to move map slightly upwards
         map.setView([markerPosition.lat + offsetLat, markerPosition.lng], 13);
     }
 });
+
     </script>
 </body>
 </html>
