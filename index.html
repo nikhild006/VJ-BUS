@@ -356,7 +356,6 @@ function getUserLocation(callback) {
     }
 }
 
-// Fetch distance and ETA
 async function getDistanceTime(origin, destination) {
     const apiKey = "pCHW0kIg3AOAN475zzPLjq4WNJLWdXMz"; 
 
@@ -389,7 +388,10 @@ async function getDistanceTime(origin, destination) {
             const route = data.routes[0].summary;
 
             const distance = (route.lengthInMeters / 1000).toFixed(2) + " km"; // Convert meters to km
-            const duration = (route.travelTimeInSeconds / 60).toFixed(2) + " min"; // Convert seconds to minutes
+
+            const minutes = Math.floor(route.travelTimeInSeconds / 60);
+            const seconds = route.travelTimeInSeconds % 60;
+            const duration = `${minutes} min ${seconds} sec`; // Show exact minutes and seconds
 
             if (typeof distanceTimeText !== "undefined" && distanceTimeText) {
                 distanceTimeText.innerText = `📏 Distance: ${distance} | ⏳ ETA: ${duration}`;
