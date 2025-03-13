@@ -435,9 +435,9 @@ socket.on("location_update", function (data) {
     routeOption.textContent = routeOption.value; // Remove any existing dot before updating
 
     if (data.status === "tracking_active") {
-        routeOption.textContent = `🟢 ${data.route_id}`;
+        routeOption.textContent = `${data.route_id}🟢`;
     } else if (data.status === "stopped") {
-        routeOption.textContent = `🔴 ${data.route_id}`;
+        routeOption.textContent = `${data.route_id}`;
     }
 
     if (data.route_id !== selectedRoute) return;
