@@ -427,6 +427,7 @@ function updateFindDistanceVisibility() {
 let firstRecenter = {}; // Track first recenter per route
 
 socket.on("location_update", function (data) {
+    
     if (!data.route_id) return;
 
     let routeOption = document.querySelector(`#routeSelect option[value='${data.route_id}']`);
@@ -445,7 +446,8 @@ socket.on("location_update", function (data) {
     if (data.latitude && data.longitude && data.status === "tracking_active") {
         latestBusLocation = `${data.longitude},${data.latitude}`;
         updateFindDistanceVisibility();
-
+        
+    console.log("Received Broadcast Data:", data);
         if (!markers[selectedRoute]) {
             markers[selectedRoute] = L.marker([data.latitude, data.longitude]).addTo(map);
         } else {
@@ -461,6 +463,7 @@ socket.on("location_update", function (data) {
             map.setView([data.latitude, data.longitude], 13);
         }
     } else if (data.status === "stopped") {
+        console.log("Received Broadcast Data:", data);
         if (markers[selectedRoute] && markers[selectedRoute]._map) {
             markers[selectedRoute].remove();
         }
