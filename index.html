@@ -424,15 +424,27 @@ function updateFindDistanceVisibility() {
     }
 }
 
-// Handle live location updates
 socket.on("location_update", function (data) {
+    if (!data.route_id) return;
+
+    let routeOption = document.querySelector(`#routeSelect option[value='${data.route_id}']`);
+    if (!routeOption) return; // If the route is not in the dropdown, skip
+
+    // Remove any existing dot (🟢 or 🔴) before updating
+    routeOption.textContent = routeOption.value; 
+
+    if (data.status === "tracking_active") {
+        routeOption.textContent = `🟢 ${data.route_id}`; // Add green dot for active tracking
+    } else if (data.status === "stopped") {
+        routeOption.textContent = `🔴 ${data.route_id}`; // Add red dot for stopped tracking
+    }
+
     if (data.route_id !== selectedRoute) return;
 
     if (data.latitude && data.longitude && data.status === "tracking_active") {
         latestBusLocation = `${data.longitude},${data.latitude}`;
-        updateFindDistanceVisibility(); // Ensure both buttons update properly
+        updateFindDistanceVisibility();
 
-        // Create or update marker
         if (!markers[selectedRoute]) {
             markers[selectedRoute] = L.marker([data.latitude, data.longitude]).addTo(map);
         } else {
@@ -451,7 +463,6 @@ socket.on("location_update", function (data) {
         console.log(data);
         if (statusText) statusText.innerText = `🛑 Live tracking stopped for ${selectedRoute}`;
 
-        // Hide Distance & ETA when tracking stops
         latestBusLocation = null;
         distanceTimeText.style.display = "none";
         lastUpdatedText.style.display = "none";
@@ -479,8 +490,6 @@ recenterBtn.addEventListener("click", function () {
         map.setView([markerPosition.lat + offsetLat, markerPosition.lng], 13);
     }
 });
-
-
     </script>
 </body>
 </html>
