@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -14,6 +15,29 @@
             height: 100%;
             overflow: hidden;
         }
+/* Home Button Styling */
+#home-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    background-color: #007bff;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    text-decoration: none;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+    transition: background 0.3s ease;
+    z-index: 1000; /* Ensure it's above other elements */
+}
+
+#home-button:hover {
+    background-color: #0056b3;
+}
 
         #map {
             height: 100%;
@@ -22,6 +46,9 @@
     </style>
 </head>
 <body>
+    
+    <a href="/admin" id="home-button">🏠</a>
+
     <div id="map"></div>
     <script>
         // Initialize map
@@ -29,8 +56,23 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             updateWhenZooming: false,
             useCache: true,
-            updateWhenIdle: true
+            updateWhenIdle: true,
+            attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
+
+        var fixedLatLng = [17.539896, 78.386511];
+
+        // Create a custom DivIcon with an emoji
+        var emojiIcon = L.divIcon({
+            className: 'emoji-marker',
+            html: '<div style="font-size: 25px;">🏁</div>', // Adjust font-size for larger emoji
+            iconSize: [50, 50], // Increase size of the icon
+            iconAnchor: [15, 15] // Adjust anchor to align properly
+        });
+
+        // Add the marker with the emoji flag
+        L.marker(fixedLatLng, { icon: emojiIcon }).addTo(map)
+
 
         var markers = {};
         const socket = io("wss://bus.vnrzone.site", { transports: ["websocket"] });
