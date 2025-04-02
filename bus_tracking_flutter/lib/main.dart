@@ -132,17 +132,35 @@ class _DriverLocationAppState extends State<DriverLocationApp> {
   }
 
   void startTracking() {
-    trackingTimer = Timer.periodic(Duration(seconds: 5), (timer) async {
-      Position position = await Geolocator.getCurrentPosition();
-      Map<String, dynamic> trackingData = {
-        "route_id": selectedRouteId,
-        "latitude": position.latitude,
-        "longitude": position.longitude,
-        "status": "tracking_active"
-      };
-      socket.emit("location_update", trackingData);
-    });
-  }
+  const double stopRadius = 500; // 500 meters
+  const double targetLatitude = 17.539883;
+  const double targetLongitude = 78.386531; 
+
+  trackingTimer = Timer.periodic(Duration(seconds: 5), (timer) async {
+    Position position = await Geolocator.getCurrentPosition();
+    double distance = Geolocator.distanceBetween(
+      position.latitude, position.longitude, targetLatitude, targetLongitude);
+    
+    Map<String, dynamic> trackingData = {
+      "route_id": selectedRouteId,
+      "latitude": position.latitude,
+      "longitude": position.longitude,
+      "status": "tracking_active"
+    };
+    socket.emit("location_update", trackingData);
+
+    DateTime now = DateTime.now();
+    if (now.hour >= 6 && now.hour < 12 && distance <= stopRadius) {
+      sendFinalBroadcast(selectedRouteId!);
+      trackingTimer?.cancel();
+      FlutterBackgroundService().invoke("stopService");
+      WakelockPlus.disable();
+      setState(() => isTracking = false);
+      print("🚦 Auto-stopping: Entered 500m radius of target location (Morning).");
+    }
+  });
+}
+
 
   void sendFinalBroadcast(String routeId) async {
     Position position = await Geolocator.getCurrentPosition();
