@@ -249,7 +249,7 @@ class _DriverLocationAppState extends State<DriverLocationApp> {
               GestureDetector(
   onTapDown: (_) => setState(() => isButtonPressed = true), // Button pressed effect
   onTapUp: (_) => setState(() => isButtonPressed = false), // Reset effect
-  onTapCancel: () => setState(() => isButtonPressed = false), // Reset on cancel
+  onTapCancel: () => setState(() => isButtonPressed = false), // Reset 
   onTap: _toggleTracking,
   onLongPressStart: (_) => _startVibrationFeedback(),
   onLongPressEnd: (_) => _stopVibrationFeedback(),
