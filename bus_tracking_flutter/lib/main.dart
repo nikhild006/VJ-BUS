@@ -57,10 +57,35 @@ class _DriverLocationAppState extends State<DriverLocationApp> {
   bool isButtonPressed = false;
   double buttonOpacity = 1.0;
   final List<String> routes = [
-    'Route-1', 'Route-2', 'Route-3', 'Route-4A', 'Route-4B', 'Route-5', 'Route-6', 'Route-7', 'Route-8',
-    'Route-9', 'Route-10', 'Route-11', 'Route-S-1', 'Route-S-2', 'Route-S-3', 'Route-S-4', 'Route-S-41',
-    'Route-S-42', 'Route-S-43', 'Route-S-44', 'Route-S-5', 'Route-S-6', 'Route-S-7', 'Route-S-8', 
-    'Route-S-9', 'Route-S-10'
+    'Route-1 (Patancheru)',
+    'Route-2 (LB Nagar)',
+    'Route-2A (Nagole)',
+    'Route-3 (Yusufguda)',
+    'Route-4A (ECIL)',
+    'Route-4B (ECIL)',
+    'Route-5 (Attapur)',
+    'Route-6 (VST)',
+    'Route-7 (Kukatpally)',
+    'Route-8 (Old Alwal)',
+    'Route-9 (KPHB via Nizampet)',
+    'Route-10 (Manikonda)',
+    'Route-11 (HCU)',
+    'Route-S-1 (Patancheru)',
+    'Route-S-2/1 (LB Nagar)',
+    'Route-S-2/2 (LB Nagar)',
+    'Route-S-3/1 (Nagole via taduband)',
+    'Route-S-3/2 (Nagole via Begumpet)',
+    'Route-S-4 (Yusufguda)',
+    'Route-S-5 (Attapur)',
+    'Route-S-6 (VST)',
+    'Route-S-7 (Kukatpally)',
+    'Route-S-8 (KPHB via Nizampet)',
+    'Route-S-9 (Manikonda)',
+    'Route-S-10 (HCU)',
+    'Route-41 (ECIL)',
+    'Route-42 (ECIL)',
+    'Route-43 (ECIL)',
+    'Route-44 (ECIL)'
   ];
   String? selectedRouteId;
   late IO.Socket socket;
