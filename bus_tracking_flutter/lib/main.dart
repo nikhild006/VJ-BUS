@@ -268,7 +268,7 @@ class _DriverLocationAppState extends State<DriverLocationApp> {
                 isTracking == true
                     ? "📡 Tracking ON for $selectedRouteId"
                     : "❌ Tracking OFF",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 20),
               GestureDetector(
