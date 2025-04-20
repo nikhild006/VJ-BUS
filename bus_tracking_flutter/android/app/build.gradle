@@ -7,7 +7,7 @@ plugins {
 
 android {
     compileSdkVersion 33
-    namespace = "com.example.bus_tracking_flutter"
+    namespace = "com.campus.vjbus"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +21,7 @@ android {
     }
 
     defaultConfig {
-       applicationId= "com.example.bus_tracking_flutter"
+       applicationId= "com.campus.vjbus"
         minSdkVersion= 21
         targetSdkVersion= 33
         versionCode= 1

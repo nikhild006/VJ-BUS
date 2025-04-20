@@ -1,4 +1,4 @@
-package com.example.bus_tracking_flutter
+package com.campus.vjbus
 
 import io.flutter.embedding.android.FlutterActivity
 

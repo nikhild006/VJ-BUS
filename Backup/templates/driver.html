@@ -20,10 +20,10 @@
 
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
-        const websocketUrl = "wss://bus.vnrzone.site";
+        const websocketUrl = "ws://localhost:6104";
         let isTracking = false;
         let selectedrouteId = "";
-        let socket = io(websocketUrl, { transports: ['websocket'], autoConnect: false });
+        let socket = io(websocketUrl, { transports: ['websocket'], autoConnect: false, query: { route_id: ''}  });
         socket.connect();
 
         // route list (Replace this with API fetching if needed)
@@ -46,16 +46,72 @@
 
         socket.on('connect', () => {
             document.getElementById('connectionStatus').textContent = "⚫⚫🟢";
+            console.log(`Connected with route ID: ${selectedRouteId}`);
         });
 
         socket.on('disconnect', () => {
             document.getElementById('connectionStatus').textContent = "🔴⚫⚫";
         });
-
-        document.getElementById('routeSelect').addEventListener('change', (event) => {
-            if (isTracking) toggleTracking();
-            selectedRouteId = event.target.value;
+        // Add to the driver.html script section
+socket.on('force_disconnect', (data) => {
+    console.log("Received force disconnect from admin:", data);
+    
+    if (isTracking) {
+        // First send a final update with "stopped" status
+        navigator.geolocation.getCurrentPosition((position) => {
+            let finalBroadcast = {
+                route_id: selectedRouteId,
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                heading: position.coords.heading || 0,
+                status: 'stopped'
+            };
+            
+            console.log("Sending final location update before admin disconnect:", finalBroadcast);
+            socket.emit('location_update', finalBroadcast);
+            
+            // Now stop tracking
+            clearInterval(trackingTimer);
+            document.getElementById('toggleButton').classList.remove('stop');
+            document.getElementById('toggleButton').classList.add('go');
+            document.getElementById('toggleButton').textContent = 'GO';
+            document.getElementById('trackingStatus').textContent = `❌ Tracking OFF (Disconnected by admin)`;
+            isTracking = false;
+            
+            // Alert the driver
+            alert("You have been disconnected by an administrator");
+            
+            // Actually disconnect the socket
+            socket.disconnect();
         });
+    } else {
+        // If not tracking, just alert and disconnect
+        alert("You have been disconnected by an administrator");
+        socket.disconnect();
+    }
+});
+        // Modify the socket connection code to include route ID in query params
+document.getElementById('routeSelect').addEventListener('change', (event) => {
+    selectedRouteId = event.target.value;
+    
+    // If we're already connected, disconnect first
+    if (socket.connected) {
+        socket.disconnect();
+    }
+    
+    // Then reconnect with the new route ID
+    if (selectedRouteId) {
+        // Disconnect and reconnect with the new route ID in query params
+        socket.io.opts.query = { route_id: selectedRouteId };
+        socket.connect();
+        document.getElementById('connectionStatus').textContent = "🔄 Connecting...";
+    }
+});
+
+// Update socket initialization
+
+
+// Add this to show debugging info when route changes
 
         document.getElementById('toggleButton').addEventListener('click', toggleTracking);
 
